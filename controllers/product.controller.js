@@ -55,7 +55,7 @@ const getAll = async (request, h) => {
         const offset = (page - 1) * per_page
 
         const query = `
-            SELECT title, sku, image, price, (
+            SELECT id, title, sku, image, price, (
                 SELECT COALESCE(SUM(qty), 0) FROM adjustment_transactions WHERE sku = p.sku
             )::int AS stock 
             FROM products p 
@@ -80,7 +80,7 @@ const getDetail = async (request, h) => {
         let detail = null
         if (id) {
             const query = `
-                SELECT title, sku, image, price, description, (
+                SELECT id, title, sku, image, price, description, (
                     SELECT COALESCE(SUM(qty), 0) FROM adjustment_transactions WHERE sku = p.sku
                 )::int AS stock 
                 FROM products p 
@@ -112,7 +112,7 @@ const create = async (request, h) => {
 
         title = validateString(title);
         image = validateString(image);
-        description = description ? `'${validateString(description)}` : null;
+        description = description ? `'${validateString(description)}'` : null;
         const currentTime = getCurrentTime();
 
         const query = `
@@ -141,20 +141,20 @@ const create = async (request, h) => {
 const update = async (request, h) => {
     try {
         const { id } = request.params
-        let { title, sku, image, price, description } = request.payload
-        if (!title || !sku || !image || !price) return resp.BadRequest(h, 'Please fill all required fields')
+        let { title, image, price, description } = request.payload
+        if (!title || !image || !price) return resp.BadRequest(h, 'Please fill all required fields')
 
-        const selectQuery = `SELECT id FROM products WHERE sku = '${sku}'`
-        const checkProduct = await dbCon.query(selectQuery)
-        if (checkProduct.rows.length > 0) return resp.BadRequest(h, 'SKU is used')
+        const checkProductQuery = `SELECT id FROM products WHERE id::text ILIKE '${id}' OR sku = '${id}'`;
+        const checkProduct = await dbCon.query(checkProductQuery);
+        if (checkProduct.rows.length === 0) return resp.NotFound(h);
 
         title = validateString(title);
         image = validateString(image);
-        description = description ? `'${validateString(description)}` : null;
+        description = description ? `'${validateString(description)}'` : null;
 
         const query = `
             UPDATE products 
-            SET title='${title}', sku='${sku}', image='${image}', price='${price}', description=${description} 
+            SET title='${title}', image='${image}', price='${price}', description=${description} 
             WHERE id::text ILIKE '${id}' OR sku = '${id}';
         `;
 

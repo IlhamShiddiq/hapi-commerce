@@ -1,11 +1,11 @@
 const { Client: PgClient } = require("pg");
 
 const dbCon = new PgClient({
-    user: 'postgres',
-    host: 'localhost',
-    database: 'hapi-commerce',
-    password: 'postgres',
-    port: 5434,
+    user: process.env.DATABASE_USERNAME,
+    host: process.env.DATABASE_HOST,
+    database: process.env.DATABASE_NAME,
+    password: process.env.DATABASE_PASSWORD,
+    port: process.env.DATABASE_PORT,
 });
 
 const connectDb = async () => {

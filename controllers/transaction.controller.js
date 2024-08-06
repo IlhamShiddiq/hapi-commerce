@@ -11,7 +11,7 @@ const getAll = async (request, h) => {
         const offset = (page - 1) * per_page
 
         const query = `
-            SELECT at.sku, at.qty, (at.qty * p.price) AS amount 
+            SELECT at.id, at.sku, at.qty, (at.qty * p.price) AS amount 
             FROM adjustment_transactions at 
             INNER JOIN products p 
             ON at.sku = p.sku 
@@ -36,7 +36,7 @@ const getDetail = async (request, h) => {
         let detail = null
         if (id) {
             const query = `
-                SELECT at.sku, at.qty, (at.qty * p.price) AS amount 
+                SELECT at.id, at.sku, at.qty, (at.qty * p.price) AS amount 
                 FROM adjustment_transactions at 
                 INNER JOIN products p 
                 ON at.sku = p.sku 
@@ -99,7 +99,11 @@ const update = async (request, h) => {
         const { sku, qty } = request.payload
         if (!sku || !qty) return resp.BadRequest(h, 'Please fill all required fields')
 
-        const query = `UPDATE adjustment_transactions SET sku='${sku}', qty='${qty}' WHERE id = '${id}';`
+        const checkTransactionQuery = `SELECT id FROM adjustment_transactions WHERE id::text ILIKE '${id}'`;
+        const checkTransaction = await dbCon.query(checkTransactionQuery);
+        if (checkTransaction.rows.length === 0) return resp.NotFound(h);
+
+        const query = `UPDATE adjustment_transactions SET sku='${sku}', qty='${qty}' WHERE id::text ILIKE '${id}';`
         await dbCon.query(query);
 
         return resp.HttpOk(h, 'Update transaction success')
@@ -112,7 +116,7 @@ const update = async (request, h) => {
 const destroy = async (request, h) => {
     try {
         const { id } = request.params
-        const query = `DELETE FROM adjustment_transactions WHERE id = '${id}'`
+        const query = `DELETE FROM adjustment_transactions WHERE id::text ILIKE '${id}'`
         await dbCon.query(query)
 
         return resp.HttpOk(h, 'Delete transaction success')
